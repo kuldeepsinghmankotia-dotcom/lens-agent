@@ -33,6 +33,16 @@ CREATE TABLE IF NOT EXISTS events (
   UNIQUE (session_id, uid)
 );
 CREATE INDEX IF NOT EXISTS events_session_ts ON events (session_id, ts, id);
+CREATE TABLE IF NOT EXISTS memories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project TEXT NOT NULL,
+  text TEXT NOT NULL,
+  status TEXT NOT NULL,
+  source TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  UNIQUE (project, text)
+);
 CREATE TABLE IF NOT EXISTS files (
   path TEXT PRIMARY KEY,
   size INTEGER NOT NULL,
@@ -47,6 +57,11 @@ export class Store {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 })
     this.db = new DatabaseSync(path)
     this.db.exec(SCHEMA)
+  }
+
+  /** Raw handle for modules that own their own tables (memory). */
+  get handle(): DatabaseSync {
+    return this.db
   }
 
   close(): void {
@@ -193,8 +208,18 @@ export class Store {
     return { ...totals, byAgent }
   }
 
-  purge(): void {
+  /** Sessions whose working folder is `project` or inside it. */
+  sessionsForProject(project: string): SessionRow[] {
+    const escaped = project.replace(/[\\%_]/g, '\\$&')
+    return this.db
+      .prepare("SELECT * FROM sessions WHERE cwd = ? OR cwd LIKE ? ESCAPE '\\' ORDER BY started_at")
+      .all(project, `${escaped}/%`) as unknown as SessionRow[]
+  }
+
+  /** Deletes captured sessions. Curated memories are kept unless `includeMemories` is set. */
+  purge(includeMemories = false): void {
     this.db.exec('DELETE FROM events; DELETE FROM sessions; DELETE FROM files;')
+    if (includeMemories) this.db.exec('DELETE FROM memories;')
     this.db.exec('VACUUM')
   }
 }

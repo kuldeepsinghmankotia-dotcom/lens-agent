@@ -35,5 +35,13 @@ Redaction is pattern based. It cannot catch every secret. Treat the database as 
 
 ## Deleting your data
 
-`lens purge --yes` deletes everything lens-agent stored. Your agents' own files are not
+`lens purge --yes` deletes captured sessions. Curated memories are kept, because you wrote
+or approved them; add `--memories` to delete those too. Your agents' own files are never
 touched.
+
+## Memory and instruction files
+
+`lens memory apply` writes accepted memories into `AGENTS.md` and `CLAUDE.md`, which agents
+read as instructions. To limit prompt-injection risk, nothing is written without an
+explicit `apply`, suggestions are never auto-accepted, and memory text is forced to one line
+with comment syntax stripped and secrets redacted. Use `--dry-run` to preview.

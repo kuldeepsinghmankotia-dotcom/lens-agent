@@ -33,7 +33,10 @@ lens sessions   # list sessions
 | `lens sessions --agent claude --limit 10` | Filter the list |
 | `lens show 6b8d75d8` | Timeline of one session (an id prefix is enough) |
 | `lens dashboard` | Open the local dashboard; use the printed link |
-| `lens purge --yes` | Delete everything lens-agent stored |
+| `lens purge --yes` | Delete captured sessions (`--memories` also deletes memories) |
+| `lens remember "text"` | Save a project memory |
+| `lens memory suggest` / `list` / `accept` / `reject` / `edit` / `forget` | Curate memories |
+| `lens memory apply [--dry-run]` | Write accepted memories into AGENTS.md and CLAUDE.md |
 
 The dashboard link contains a token and works only on your machine. Press Ctrl+C to stop it.
 

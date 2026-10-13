@@ -1,6 +1,6 @@
 {
   "name": "lens-agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local-first lens for coding agents: see what Claude Code and Codex did, in one place",
   "license": "MIT",
   "author": "Abhinav Rana",

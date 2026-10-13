@@ -1,6 +1,6 @@
 # Spec (v0.1)
 
-Status: implemented. Owner: Abhinav Rana. License: MIT.
+Status: implemented (v0.1). Memory was added in v0.2. Owner: Abhinav Rana. License: MIT.
 
 ## Scope
 
@@ -11,7 +11,7 @@ IN:
 - Read-only local dashboard (plain HTML and JavaScript, no build step).
 - Secret redaction and per-run dashboard token.
 
-OUT (later versions): Memory, Verify, Registry, hosted sync, accounts, other agents,
+OUT of v0.1 (Memory was added in v0.2, see [memory-spec.md](memory-spec.md)): Verify, Registry, hosted sync, accounts, other agents,
 money-cost estimates.
 
 ## Decisions and why

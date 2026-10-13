@@ -5,6 +5,17 @@ import { sync } from './ingest.js'
 import { dbPath } from './paths.js'
 import { createDashboard } from './server.js'
 import type { SessionRow } from './types.js'
+import { applyMemories } from './memory/apply.js'
+import {
+  addMemory,
+  editMemory,
+  forgetMemory,
+  listMemories,
+  projectKey,
+  setStatus,
+  type MemoryRow
+} from './memory/store.js'
+import { suggestMemories } from './memory/suggest.js'
 
 const HELP = `lens - see what your coding agents did (everything stays on this machine)
 
@@ -15,7 +26,17 @@ Usage:
   lens sessions [--agent claude|codex] [--limit N]
   lens show <session-id>        Show one session (an id prefix is enough)
   lens dashboard [--port N]     Open the local dashboard (127.0.0.1 only)
-  lens purge --yes              Delete all stored data
+  lens purge --yes [--memories] Delete captured sessions (memories too with --memories)
+
+Memory (per project folder; --project <path> picks another folder):
+  lens remember "text"          Save a memory for this project
+  lens memory list [--all]      Show memories (--all includes suggested and rejected)
+  lens memory suggest           Propose memories from this project's sessions
+  lens memory accept <id>       Keep a suggestion
+  lens memory reject <id>       Dismiss a suggestion for good
+  lens memory edit <id> "text"  Change the wording
+  lens memory forget <id>       Delete one memory
+  lens memory apply [--dry-run] Write accepted memories into AGENTS.md and CLAUDE.md
   lens --help
 `
 
@@ -43,6 +64,71 @@ function printSessions(rows: SessionRow[]): void {
         10
       )}${s.title ?? '(untitled)'}`
     )
+  }
+}
+
+function printMemories(rows: MemoryRow[]): void {
+  if (rows.length === 0) {
+    console.log('No memories yet. Try: lens remember "we use Vitest" or lens memory suggest')
+    return
+  }
+  for (const m of rows) {
+    console.log(`${pad(m.id, 5)}${pad(m.status, 10)}${m.text}`)
+  }
+}
+
+function memoryId(value: string | undefined): number {
+  const id = Number(value)
+  if (!Number.isInteger(id) || id < 1) throw new Error('Give a memory id, e.g. lens memory accept 3')
+  return id
+}
+
+function runMemory(store: Store, args: string[]): void {
+  const [sub, ...rest] = args
+  const project = projectKey(flag(rest, '--project') ?? process.cwd())
+  switch (sub) {
+    case 'list': {
+      printMemories(listMemories(store, project, rest.includes('--all') ? undefined : ['accepted', 'suggested']))
+      break
+    }
+    case 'suggest': {
+      const created = suggestMemories(store, project)
+      console.log(created.length ? `${created.length} new suggestion(s):` : 'No new suggestions.')
+      for (const text of created) console.log(`  ${text}`)
+      if (created.length) console.log('Review with "lens memory list", then accept or reject by id.')
+      break
+    }
+    case 'accept':
+    case 'reject': {
+      const id = memoryId(rest[0])
+      if (!setStatus(store, id, sub === 'accept' ? 'accepted' : 'rejected')) throw new Error(`No memory ${id}.`)
+      console.log(`Memory ${id} ${sub === 'accept' ? 'accepted' : 'rejected'}.`)
+      break
+    }
+    case 'edit': {
+      const id = memoryId(rest[0])
+      if (!rest[1]) throw new Error('Usage: lens memory edit <id> "new text"')
+      if (!editMemory(store, id, rest[1])) throw new Error(`No memory ${id}.`)
+      console.log(`Memory ${id} updated.`)
+      break
+    }
+    case 'forget': {
+      const id = memoryId(rest[0])
+      if (!forgetMemory(store, id)) throw new Error(`No memory ${id}.`)
+      console.log(`Memory ${id} deleted.`)
+      break
+    }
+    case 'apply': {
+      const accepted = listMemories(store, project, ['accepted']).map((m) => m.text)
+      const dryRun = rest.includes('--dry-run')
+      for (const r of applyMemories(project, accepted, dryRun)) {
+        console.log(`${dryRun ? '[dry run] ' : ''}${r.action.padEnd(9)} ${r.file}${r.note ? ` (${r.note})` : ''}`)
+      }
+      console.log(`${accepted.length} accepted memor${accepted.length === 1 ? 'y' : 'ies'} in the block.`)
+      break
+    }
+    default:
+      throw new Error('Usage: lens memory list|suggest|accept|reject|edit|forget|apply')
   }
 }
 
@@ -123,11 +209,25 @@ function main(): void {
         })
         return // keep the process and database open while serving
       }
-      case 'purge':
-        if (!args.includes('--yes')) throw new Error('This deletes all stored data. Re-run: lens purge --yes')
-        store.purge()
-        console.log('All stored data deleted. Your agents\' own session files were not touched.')
+      case 'remember': {
+        const text = args.filter((a, i) => a !== '--project' && args[i - 1] !== '--project').join(' ')
+        const project = projectKey(flag(args, '--project') ?? process.cwd())
+        const { memory, created } = addMemory(store, project, text, 'manual', 'accepted')
+        console.log(`${created ? 'Saved' : 'Already saved'} as memory ${memory.id}. Run "lens memory apply" to write it to AGENTS.md and CLAUDE.md.`)
         break
+      }
+      case 'memory':
+        runMemory(store, args)
+        break
+      case 'purge': {
+        if (!args.includes('--yes')) throw new Error('This deletes captured sessions. Re-run: lens purge --yes')
+        const withMemories = args.includes('--memories')
+        store.purge(withMemories)
+        console.log(
+          `Captured sessions deleted${withMemories ? ' and memories deleted' : '; memories kept (add --memories to delete them)'}. Your agents' own session files were not touched.`
+        )
+        break
+      }
       default:
         throw new Error(`Unknown command "${command}". Run "lens --help".`)
     }

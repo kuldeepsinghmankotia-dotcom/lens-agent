@@ -17,9 +17,16 @@ agents do.
 | **No setup burden** | Reads existing session files. No hooks, no config changes, no accounts |
 | **Works offline** | No network calls at all |
 
+## Memory (v0.2)
+
+| Benefit | How |
+| --- | --- |
+| **Stop re-explaining your project** | Save facts once with `lens remember`; they are written into `AGENTS.md` and `CLAUDE.md`, which Codex and Claude Code both read |
+| **You stay in control** | Every memory is visible, editable and deletable; nothing is written until `lens memory apply` |
+| **Suggestions without AI or network** | Fixed rules propose candidates from your sessions; you accept or reject |
+
 ## What it will give you later
 
-- **Memory:** stop re-explaining your project to every agent.
 - **Verify:** catch "done" claims that are not true before you merge.
 - **Registry:** reuse skills other people have tested.
 
