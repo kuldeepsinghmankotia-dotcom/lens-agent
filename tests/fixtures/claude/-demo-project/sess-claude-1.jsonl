@@ -1,0 +1,7 @@
+{"type":"ai-title","sessionId":"sess-claude-1","aiTitle":"Fix login bug"}
+{"type":"user","sessionId":"sess-claude-1","cwd":"/demo/project","timestamp":"2026-10-14T10:00:00.000Z","uuid":"u1","message":{"role":"user","content":"Fix the login bug. My key is sk-ant-abcdef1234567890abcdef"}}
+{"type":"assistant","sessionId":"sess-claude-1","cwd":"/demo/project","timestamp":"2026-10-14T10:00:05.000Z","uuid":"a1","message":{"id":"msg_1","model":"claude-demo","role":"assistant","content":[{"type":"text","text":"Looking at the code."}],"usage":{"input_tokens":100,"cache_read_input_tokens":50,"output_tokens":10}}}
+{"type":"assistant","sessionId":"sess-claude-1","cwd":"/demo/project","timestamp":"2026-10-14T10:00:06.000Z","uuid":"a2","message":{"id":"msg_1","model":"claude-demo","role":"assistant","content":[{"type":"tool_use","id":"tool_1","name":"Bash","input":{"command":"npm test"}}],"usage":{"input_tokens":100,"cache_read_input_tokens":50,"output_tokens":40}}}
+{"type":"user","sessionId":"sess-claude-1","cwd":"/demo/project","timestamp":"2026-10-14T10:00:20.000Z","uuid":"u2","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"tool_1","is_error":true,"content":"1 test failed"}]}}
+{"type":"assistant","sessionId":"sess-claude-1","cwd":"/demo/project","timestamp":"2026-10-14T10:00:30.000Z","uuid":"a3","message":{"id":"msg_2","model":"claude-demo","role":"assistant","content":[{"type":"text","text":"Fixed it."}],"usage":{"input_tokens":200,"output_tokens":20}}}
+this line is not json

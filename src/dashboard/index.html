@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>lens-agent</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --fg: #1a1a1a;
+        --muted: #666;
+        --line: #e2e2e2;
+        --accent: #2457d6;
+        --bad: #c0392b;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #15171a;
+          --fg: #ececec;
+          --muted: #9aa0a6;
+          --line: #2d3136;
+          --accent: #7ba2ff;
+          --bad: #ff7b6b;
+        }
+      }
+      body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+      header { padding: 16px 24px; border-bottom: 1px solid var(--line); display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+      h1 { font-size: 18px; margin: 0; }
+      .stat { color: var(--muted); }
+      .stat b { color: var(--fg); }
+      main { padding: 16px 24px; max-width: 1100px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+      th { color: var(--muted); font-weight: 500; }
+      tr.row { cursor: pointer; }
+      tr.row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+      .num { text-align: right; font-variant-numeric: tabular-nums; }
+      .bad { color: var(--bad); }
+      button { font: inherit; background: none; border: 1px solid var(--line); color: var(--accent); padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+      .ev { border-left: 3px solid var(--line); padding: 4px 10px; margin: 6px 0; }
+      .ev.prompt { border-color: var(--accent); }
+      .ev.error { border-color: var(--bad); }
+      .ev .meta { color: var(--muted); font-size: 12px; }
+      pre { white-space: pre-wrap; word-break: break-word; margin: 2px 0 0; font: 12px/1.5 ui-monospace, monospace; }
+      .empty { color: var(--muted); padding: 24px 0; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>lens-agent</h1>
+      <span class="stat" id="stats"></span>
+    </header>
+    <main id="main"></main>
+    <script>
+      const params = new URLSearchParams(location.search)
+      const token = params.get('token') || ''
+      history.replaceState(null, '', location.pathname)
+      const main = document.getElementById('main')
+      const statsEl = document.getElementById('stats')
+
+      async function api(path) {
+        const res = await fetch(path, { headers: { authorization: 'Bearer ' + token } })
+        if (!res.ok) throw new Error('Request failed: ' + res.status)
+        return res.json()
+      }
+      const fmt = (n) => Number(n).toLocaleString()
+      const when = (ms) => new Date(ms).toLocaleString()
+      function el(tag, props, ...kids) {
+        const node = document.createElement(tag)
+        Object.assign(node, props || {})
+        for (const kid of kids) node.append(kid)
+        return node
+      }
+
+      async function showStats() {
+        const s = await api('/api/stats')
+        statsEl.replaceChildren(
+          el('span', {}, el('b', { textContent: fmt(s.sessions) }), ' sessions · '),
+          el('span', {}, el('b', { textContent: fmt(s.toolCalls) }), ' tool calls · '),
+          el('span', {}, el('b', { textContent: fmt(s.errors) }), ' errors · '),
+          el('span', {}, el('b', { textContent: fmt(s.inputTokens + s.outputTokens) }), ' tokens')
+        )
+      }
+
+      async function showList() {
+        const rows = await api('/api/sessions')
+        if (rows.length === 0) {
+          main.replaceChildren(el('p', { className: 'empty', textContent: 'No sessions yet. Run "lens sync" first.' }))
+          return
+        }
+        const table = el('table', {})
+        table.append(
+          el('thead', {}, el('tr', {},
+            ...['Started', 'Agent', 'Title', 'Tools', 'Errors', 'Tokens'].map((h, i) =>
+              el('th', { textContent: h, className: i >= 3 ? 'num' : '' })))))
+        const body = el('tbody', {})
+        for (const s of rows) {
+          const tr = el('tr', { className: 'row' },
+            el('td', { textContent: when(s.started_at) }),
+            el('td', { textContent: s.agent }),
+            el('td', { textContent: s.title || '(untitled)' }),
+            el('td', { className: 'num', textContent: fmt(s.tool_calls) }),
+            el('td', { className: 'num' + (s.errors ? ' bad' : ''), textContent: fmt(s.errors) }),
+            el('td', { className: 'num', textContent: fmt(s.input_tokens + s.output_tokens) }))
+          tr.addEventListener('click', () => showSession(s.id))
+          body.append(tr)
+        }
+        table.append(body)
+        main.replaceChildren(table)
+      }
+
+      async function showSession(id) {
+        const { session, events } = await api('/api/sessions/' + encodeURIComponent(id))
+        const back = el('button', { textContent: '← All sessions' })
+        back.addEventListener('click', showList)
+        const nodes = [
+          back,
+          el('h2', { textContent: session.title || '(untitled)' }),
+          el('p', { className: 'stat', textContent:
+            session.agent + ' · ' + (session.model || 'unknown model') + ' · ' + (session.cwd || '') })
+        ]
+        for (const e of events) {
+          if (e.type === 'usage') continue
+          const label = e.type === 'tool_call' || e.type === 'tool_result' ? e.type + ': ' + (e.tool || '?') : e.type
+          nodes.push(el('div', { className: 'ev ' + (e.is_error ? 'error' : e.type) },
+            el('div', { className: 'meta', textContent: when(e.ts) + ' · ' + label + (e.is_error ? ' · ERROR' : '') }),
+            el('pre', { textContent: e.text })))
+        }
+        main.replaceChildren(...nodes)
+      }
+
+      Promise.all([showStats(), showList()]).catch((err) => {
+        main.replaceChildren(el('p', { className: 'bad', textContent: String(err.message || err) }))
+      })
+    </script>
+  </body>
+</html>

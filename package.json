@@ -1,0 +1,30 @@
+{
+  "name": "lens-agent",
+  "version": "0.1.0",
+  "description": "Local-first lens for coding agents: see what Claude Code and Codex did, in one place",
+  "license": "MIT",
+  "author": "Abhinav Rana",
+  "type": "module",
+  "bin": {
+    "lens": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run lint && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5",
+    "vitest": "^5"
+  }
+}
