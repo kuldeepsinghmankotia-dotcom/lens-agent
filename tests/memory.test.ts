@@ -81,7 +81,7 @@ describe('memory store', () => {
 })
 
 function ev(uid: string, ts: number, type: LensEvent['type'], tool: string | null, text: string): LensEvent {
-  return { uid, ts, type, tool, isError: false, text, inputTokens: 0, outputTokens: 0 }
+  return { uid, ts, type, tool, isError: false, text, inputTokens: 0, outputTokens: 0, callId: null }
 }
 
 function session(store: Store, id: string, cwd: string, events: LensEvent[]): void {

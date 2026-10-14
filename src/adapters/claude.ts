@@ -98,7 +98,8 @@ export const claudeAdapter: Adapter = {
                 'tool_result',
                 id ? (toolNames.get(id) ?? null) : null,
                 part.is_error === true,
-                blockText(part.content)
+                blockText(part.content),
+                id
               )
             )
           } else if (part.type === 'text' && typeof part.text === 'string' && part.text.trim()) {
@@ -119,7 +120,7 @@ export const claudeAdapter: Adapter = {
             const id = asString(part.id)
             if (id) toolNames.set(id, name)
             events.push(
-              makeEvent(`${uuid}:t${index}`, ts, 'tool_call', name, false, JSON.stringify(part.input ?? {}))
+              makeEvent(`${uuid}:t${index}`, ts, 'tool_call', name, false, JSON.stringify(part.input ?? {}), id)
             )
           } else if (part.type === 'text' && typeof part.text === 'string' && part.text.trim()) {
             events.push(makeEvent(`${uuid}:a${index}`, ts, 'assistant_message', null, false, part.text))
@@ -161,7 +162,8 @@ function makeEvent(
   type: LensEvent['type'],
   tool: string | null,
   isError: boolean,
-  text: string
+  text: string,
+  callId: string | null = null
 ): LensEvent {
-  return { uid, ts, type, tool, isError, text, inputTokens: 0, outputTokens: 0 }
+  return { uid, ts, type, tool, isError, text, inputTokens: 0, outputTokens: 0, callId }
 }

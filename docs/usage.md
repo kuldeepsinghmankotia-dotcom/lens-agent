@@ -34,6 +34,7 @@ lens sessions   # list sessions
 | `lens show 6b8d75d8` | Timeline of one session (an id prefix is enough) |
 | `lens dashboard` | Open the local dashboard; use the printed link |
 | `lens purge --yes` | Delete captured sessions (`--memories` also deletes memories) |
+| `lens verify <id>` / `--last` / `--project` | Check "tests pass" claims against the session (read only; exit 2 on a problem) |
 | `lens remember "text"` | Save a project memory |
 | `lens memory suggest` / `list` / `accept` / `reject` / `edit` / `forget` | Curate memories |
 | `lens memory apply [--dry-run]` | Write accepted memories into AGENTS.md and CLAUDE.md |

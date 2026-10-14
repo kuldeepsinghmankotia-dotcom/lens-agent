@@ -1,6 +1,7 @@
-# Verify spec (v0.4, design)
+# Verify spec (v0.4)
 
-Status: DESIGN. Not implemented. Part 3 of the roadmap.
+Status: implemented (audit only). Part 3 of the roadmap. See "Results on real sessions" below
+for how well it works, which is: not very well yet.
 
 ## Aim
 
@@ -100,18 +101,54 @@ a hook or CI. The dashboard gets a "claims" panel afterwards, not in v0.4.
 
 - Read only. No commands are executed. No network.
 - Quoted claim and evidence text goes through the existing `sanitize()` before display.
-- Verdicts are stored in a new `verdicts` table, derived data only, and removed by
-  `lens purge`.
+- Verdicts are computed on demand and not stored. (The first design proposed a `verdicts`
+  table. It was dropped: nothing needs it yet and it would only add data to keep in sync.)
+
+## Changes made while building
+
+- **`call_id` on events.** Matching a command to its own result needs the tool call id, which
+  v0.2 did not keep. Events now store it. Existing databases are migrated and re-imported
+  automatically on the next `lens sync`.
+- **Result timing.** A result that arrives after a claim is not evidence for that claim.
+  Found by a mutation check that revealed the first version looked at the whole session.
+- **`npm run lint` and type-checks.** Whether `npm run lint` is eslint or `tsc --noEmit`
+  depends on the project, so a type-check claim backed only by it is UNKNOWN, not
+  UNSUPPORTED. Found when the first real run produced a false UNSUPPORTED.
+
+## Results on real sessions
+
+Run on the 11 sessions on the dev machine (Claude Code only):
+
+| Result | Count |
+| --- | --- |
+| Claims found | 13, in 4 sessions |
+| SUPPORTED | 0 |
+| UNSUPPORTED / CONTRADICTED | 0 (one false UNSUPPORTED, fixed, see above) |
+| UNKNOWN | 13 |
+| Real problems caught | 0 |
+
+**Reading this honestly:** the tool did not catch anything, and it did not confirm anything
+either. Almost every claim is UNKNOWN because agents run tests inside chained or piped
+commands (`cd … && python3 - <<EOF … ; npm run check`), and the exit status of a chain
+cannot be attributed to the test. That is the main weakness of version 0.4, and it is
+where real sessions spend their time.
+
+Likely next improvements (not done, not decided):
+1. Read the test runner's own summary line in the result ("Tests 52 passed (52)"). Stored
+   results are cut to the first 2000 characters, and summaries sit at the end, so storage
+   would need to keep the tail too.
+2. Treat an `&&` only chain that exits 0 as passing every part of it.
+3. Re-run the project's own scripts (the 0.4.1 idea) when the session cannot answer.
 
 ## Success criteria
 
 | # | Criterion |
 | --- | --- |
-| 1 | Each verdict has a unit test on a hand-built session, including the edge cases (stale, compound, failed then fixed, claim before any run) |
-| 2 | On the real sessions on the dev machine, every flagged UNSUPPORTED or CONTRADICTED item is reviewed by hand and the false-positive count is reported |
-| 3 | The one known case (a session with a claim and no run) is flagged UNSUPPORTED |
-| 4 | Codex sessions never get a SUPPORTED verdict from unverified data |
-| 5 | `npm run check` passes and no network code is added |
+| 1 | Each verdict has a unit test on a hand-built session, including the edge cases | Done. Engine checked by mutation |
+| 2 | Real sessions reviewed by hand, false positives reported | Done: 1 false positive found and fixed; 0 true problems found |
+| 3 | The known "claim with no run" case is flagged UNSUPPORTED | **Not met.** With the narrower claim rules that session no longer contains a claim, so there is no real example of UNSUPPORTED or CONTRADICTED to test against. Only hand-built sessions cover them |
+| 4 | Codex never gets SUPPORTED from unverified data | Done, tested |
+| 5 | `npm run check` passes, no network code | Done |
 
 ## Risks
 

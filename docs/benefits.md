@@ -25,6 +25,12 @@ agents do.
 | **You stay in control** | Every memory is visible, editable and deletable; nothing is written until `lens memory apply` |
 | **Suggestions without AI or network** | Fixed rules propose candidates from your sessions; you accept or reject |
 
+## Verify (v0.4): limited so far
+
+`lens verify` compares "tests pass" style claims with the commands the session actually ran.
+It works on hand-built examples. On real sessions it mostly answers "unknown", because
+agents chain commands, so treat it as a first version. See [verify-spec.md](verify-spec.md).
+
 ## What it will give you later
 
 - **Verify:** catch "done" claims that are not true before you merge.

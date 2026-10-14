@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS events (
   text TEXT NOT NULL,
   input_tokens INTEGER NOT NULL,
   output_tokens INTEGER NOT NULL,
+  call_id TEXT,
   UNIQUE (session_id, uid)
 );
 CREATE INDEX IF NOT EXISTS events_session_ts ON events (session_id, ts, id);
@@ -57,6 +58,19 @@ export class Store {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 })
     this.db = new DatabaseSync(path)
     this.db.exec(SCHEMA)
+    this.migrate()
+  }
+
+  /**
+   * Databases made before call_id existed get the column and are re-imported on the next
+   * sync (the file cache is cleared), so old events pick up their ids.
+   */
+  private migrate(): void {
+    const columns = this.db.prepare('PRAGMA table_info(events)').all() as unknown as Array<{ name: string }>
+    if (!columns.some((c) => c.name === 'call_id')) {
+      this.db.exec('ALTER TABLE events ADD COLUMN call_id TEXT')
+      this.db.exec('DELETE FROM files')
+    }
   }
 
   /** Raw handle for modules that own their own tables (memory). */
@@ -123,8 +137,8 @@ export class Store {
         )
       const insert = this.db.prepare(
         `INSERT OR IGNORE INTO events (session_id, uid, ts, type, tool, is_error, text,
-           input_tokens, output_tokens)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           input_tokens, output_tokens, call_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       for (const e of events) {
         insert.run(
@@ -136,7 +150,8 @@ export class Store {
           e.isError ? 1 : 0,
           sanitize(e.text),
           e.inputTokens,
-          e.outputTokens
+          e.outputTokens,
+          e.callId
         )
       }
       this.db.exec('COMMIT')

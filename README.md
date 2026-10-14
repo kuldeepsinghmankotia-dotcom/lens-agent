@@ -40,7 +40,8 @@ More: [docs/usage.md](docs/usage.md).
 | CLI | Working |
 | Dashboard | Working; page behaviour covered by automated tests. Layout and dark mode not yet checked in a real browser |
 | Memory (`lens remember`, `lens memory ...`) | Working. Suggestions are rule based and can be noisy; see [docs/memory-spec.md](docs/memory-spec.md) |
-| Verify, Registry | Planned: see [docs/roadmap.md](docs/roadmap.md) |
+| Verify (`lens verify`) | Working but weak: on real sessions almost every claim comes out UNKNOWN. See [docs/verify-spec.md](docs/verify-spec.md) |
+| Registry | Planned: see [docs/roadmap.md](docs/roadmap.md) |
 
 ## Privacy
 
@@ -49,7 +50,7 @@ Local only, no network calls, secrets redacted before storage, dashboard bound t
 
 ## Documentation
 
-[Aim](docs/aim.md) · [Benefits](docs/benefits.md) · [Spec](docs/spec.md) · [Memory](docs/memory-spec.md) ·
+[Aim](docs/aim.md) · [Benefits](docs/benefits.md) · [Spec](docs/spec.md) · [Memory](docs/memory-spec.md) · [Verify](docs/verify-spec.md) ·
 [Architecture](docs/architecture.md) · [Roadmap](docs/roadmap.md) ·
 [Privacy](docs/privacy.md) · [Usage](docs/usage.md) · [Plans](docs/plans/)
 

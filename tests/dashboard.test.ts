@@ -13,7 +13,7 @@ const TOKEN = 'ui-test-token'
 const ATTACK = '<img src=x onerror="window.__pwned=1"><script>window.__pwned=1</script>'
 
 function ev(uid: string, ts: number, type: LensEvent['type'], text: string, isError = false): LensEvent {
-  return { uid, ts, type, tool: type === 'tool_result' ? 'Bash' : null, isError, text, inputTokens: 0, outputTokens: 0 }
+  return { uid, ts, type, tool: type === 'tool_result' ? 'Bash' : null, isError, text, inputTokens: 0, outputTokens: 0, callId: null }
 }
 
 async function until(check: () => boolean, label: string): Promise<void> {

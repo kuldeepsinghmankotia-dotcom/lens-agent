@@ -16,6 +16,8 @@ import {
   type MemoryRow
 } from './memory/store.js'
 import { suggestMemories } from './memory/suggest.js'
+import { hasProblems, verifySession } from './verify/engine.js'
+import { renderReport } from './verify/report.js'
 
 const HELP = `lens - see what your coding agents did (everything stays on this machine)
 
@@ -27,6 +29,12 @@ Usage:
   lens show <session-id>        Show one session (an id prefix is enough)
   lens dashboard [--port N]     Open the local dashboard (127.0.0.1 only)
   lens purge --yes [--memories] Delete captured sessions (memories too with --memories)
+
+Verify (checks "tests pass" style claims against what the session shows; read only):
+  lens verify <session-id>      Audit one session
+  lens verify --last            Audit the most recent session
+  lens verify --project [path]  Audit recent sessions of a project (--limit N, default 10)
+  Exit code 2 when a claim is CONTRADICTED or UNSUPPORTED.
 
 Memory (per project folder; --project <path> picks another folder):
   lens remember "text"          Save a memory for this project
@@ -209,6 +217,33 @@ function main(): void {
           console.log('Local only. Press Ctrl+C to stop.')
         })
         return // keep the process and database open while serving
+      }
+      case 'verify': {
+        let sessions: SessionRow[]
+        if (args.includes('--last')) {
+          sessions = store.listSessions({ limit: 1 })
+        } else if (args.includes('--project')) {
+          const at = args.indexOf('--project')
+          const next = args[at + 1]
+          const project = projectKey(next && !next.startsWith('--') ? next : process.cwd())
+          const limit = Number(flag(args, '--limit') ?? 10)
+          sessions = store.sessionsForProject(project).slice(-(Number.isFinite(limit) && limit > 0 ? limit : 10))
+        } else {
+          const id = args[0]
+          if (!id || id.startsWith('--')) throw new Error('Usage: lens verify <session-id> | --last | --project [path]')
+          const found = store.findSession(id)
+          if (!found) throw new Error(`No unique session matches "${id}". Try "lens sessions".`)
+          sessions = [found]
+        }
+        if (sessions.length === 0) throw new Error('No sessions to verify. Run "lens sync" first.')
+        let problems = false
+        for (const session of sessions) {
+          const results = verifySession(session.agent, store.listEvents(session.id))
+          problems ||= hasProblems(results)
+          console.log(renderReport(session, results).join('\n'))
+        }
+        if (problems) process.exitCode = 2
+        break
       }
       case 'remember': {
         const text = args.filter((a, i) => a !== '--project' && args[i - 1] !== '--project').join(' ')

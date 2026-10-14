@@ -11,6 +11,8 @@ export interface LensEvent {
   text: string
   inputTokens: number
   outputTokens: number
+  /** Links a tool_call to its tool_result. Null when the agent gives no id. */
+  callId: string | null
 }
 
 export interface ParsedSession {
@@ -55,4 +57,5 @@ export interface EventRow {
   text: string
   input_tokens: number
   output_tokens: number
+  call_id: string | null
 }

@@ -111,12 +111,12 @@ export const codexAdapter: Adapter = {
         const name = asString(payload.name) ?? 'unknown'
         const callId = asString(payload.call_id)
         if (callId) callNames.set(callId, name)
-        events.push(makeEvent(uid, when, 'tool_call', name, false, asString(payload.arguments) ?? ''))
+        events.push(makeEvent(uid, when, 'tool_call', name, false, asString(payload.arguments) ?? '', callId))
       } else if (payload.type === 'function_call_output') {
         const callId = asString(payload.call_id)
         const output = asString(payload.output) ?? JSON.stringify(payload.output ?? '')
         events.push(
-          makeEvent(uid, when, 'tool_result', callId ? (callNames.get(callId) ?? null) : null, false, output)
+          makeEvent(uid, when, 'tool_result', callId ? (callNames.get(callId) ?? null) : null, false, output, callId)
         )
       }
     })
@@ -139,7 +139,8 @@ function makeEvent(
   type: LensEvent['type'],
   tool: string | null,
   isError: boolean,
-  text: string
+  text: string,
+  callId: string | null = null
 ): LensEvent {
-  return { uid, ts, type, tool, isError, text, inputTokens: 0, outputTokens: 0 }
+  return { uid, ts, type, tool, isError, text, inputTokens: 0, outputTokens: 0, callId }
 }
