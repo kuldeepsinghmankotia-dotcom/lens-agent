@@ -31,7 +31,7 @@ money-cost estimates.
 | --- | --- | --- |
 | 1 | `lens init` imports existing sessions | Verified on 9 real Claude sessions |
 | 2 | Re-running sync creates no duplicates | Tested |
-| 3 | Dashboard shows sessions and events | API verified over HTTP; page not yet checked in a browser |
+| 3 | Dashboard shows sessions and events | API verified over HTTP. Page behaviour covered by an automated jsdom test (rows, error highlighting, timeline, redaction, XSS safety, empty and error states). Visual layout and dark mode not checked in a real browser |
 | 4 | Adapters and storage have passing tests | 28 tests pass |
 | 5 | No outbound network calls | Enforced by a static test over `src/` |
 | 6 | Codex session captured from a real Codex run | **Not done.** No Codex sessions exist on the dev machine yet |

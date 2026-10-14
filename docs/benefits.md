@@ -33,6 +33,7 @@ agents do.
 ## Honest limits
 
 - **Cost in money is not shown.** Prices change and differ by plan, so v0.1 shows tokens only.
+- **Dashboard looks are unchecked.** Its behaviour is tested automatically, but nobody has yet reviewed the layout or dark mode in a real browser.
 - **Codex support is experimental.** It is built from the known log format and hand-made
   fixtures, not yet from a real Codex session. See [codex-adapter.md](codex-adapter.md).
 - **It reads what agents write.** If an agent changes its file format, that adapter needs an

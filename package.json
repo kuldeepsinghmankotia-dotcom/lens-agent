@@ -23,7 +23,9 @@
     "check": "npm run lint && npm test && npm run build"
   },
   "devDependencies": {
+    "@types/jsdom": "^30.0.0",
     "@types/node": "^22",
+    "jsdom": "^30.1.2",
     "typescript": "^5",
     "vitest": "^5"
   }
