@@ -2,7 +2,7 @@ import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import type { EventRow, ParsedSession, SessionRow } from './types.js'
-import { sanitize } from './redact.js'
+import { sanitize, TOOL_CALL_MAX } from './redact.js'
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS sessions (
@@ -70,6 +70,13 @@ export class Store {
     if (!columns.some((c) => c.name === 'call_id')) {
       this.db.exec('ALTER TABLE events ADD COLUMN call_id TEXT')
       this.db.exec('DELETE FROM files')
+    }
+    // Version 3: results keep their tail and tool calls keep up to 30000 characters.
+    // Re-import once so old rows gain them.
+    const version = (this.db.prepare('PRAGMA user_version').get() as unknown as { user_version: number }).user_version
+    if (version < 3) {
+      this.db.exec('DELETE FROM files')
+      this.db.exec('PRAGMA user_version = 3')
     }
   }
 
@@ -148,7 +155,7 @@ export class Store {
           e.type,
           e.tool,
           e.isError ? 1 : 0,
-          sanitize(e.text),
+          sanitize(e.text, e.type === 'tool_call' ? TOOL_CALL_MAX : undefined),
           e.inputTokens,
           e.outputTokens,
           e.callId

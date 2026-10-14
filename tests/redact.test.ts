@@ -24,13 +24,20 @@ describe('redact', () => {
     expect(out).toBe('[REDACTED_PRIVATE_KEY]')
   })
 
+  it('keeps more of a tool call when a larger limit is given', () => {
+    const out = sanitize('y'.repeat(10000), 30000)
+    expect(out).toBe('y'.repeat(10000))
+  })
+
   it('leaves normal text alone', () => {
     expect(redact('Fix the login bug in src/auth.ts')).toBe('Fix the login bug in src/auth.ts')
   })
 
-  it('truncates very long text after redacting', () => {
-    const out = sanitize('x'.repeat(5000))
+  it('truncates very long text after redacting, keeping the start and the end', () => {
+    const out = sanitize(`START${'x'.repeat(5000)}Tests 52 passed (52)`)
     expect(out.length).toBeLessThan(2100)
-    expect(out.endsWith('[truncated]')).toBe(true)
+    expect(out.startsWith('START')).toBe(true)
+    expect(out.endsWith('Tests 52 passed (52)')).toBe(true)
+    expect(out).toContain('[truncated]')
   })
 })

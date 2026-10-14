@@ -6,6 +6,11 @@ export interface CommandInfo {
   maybeKinds: Kind[]
   /** True when the exit status may belong to a different part of the command. */
   uncertain: boolean
+  /**
+   * True for a plain `a && b && c` chain: no pipes, `||`, `;`, quotes or heredocs. Exit 0
+   * then means every part succeeded. A failure still cannot be pinned on one part.
+   */
+  chain: boolean
 }
 
 const RUNNERS: Array<[Kind[], RegExp]> = [
@@ -44,5 +49,7 @@ export function classifyCommand(command: string): CommandInfo | null {
   // `npm run lint` is eslint in some projects and `tsc --noEmit` in others. Only the
   // project's package.json says which, so a type-check is possible but not proven.
   const maybeKinds: Kind[] = /\bnpm\s+run\s+lint\b/.test(cleaned) && !kinds.has('typecheck') ? ['typecheck'] : []
-  return { kinds: [...kinds], maybeKinds, uncertain: /&&|\|\||;|\|/.test(withoutRedirects) }
+  const chained = /&&|\|\||;|\|/.test(withoutRedirects)
+  const chain = /&&/.test(withoutRedirects) && !/\|\||;|\||[\n"'`<]/.test(withoutRedirects)
+  return { kinds: [...kinds], maybeKinds, uncertain: chained && !chain, chain }
 }

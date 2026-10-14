@@ -6,7 +6,7 @@ all of it as sensitive.
 ## What is stored
 
 For each session: id, agent, folder, model, title, timestamps, counts, token totals, and a
-timeline of events with their text. Text is redacted and cut to 2000 characters.
+timeline of events with their text. Text is redacted and cut to 2000 characters (start and end are kept; tool calls keep up to 30000).
 
 Stored in `~/.lens-agent/lens.db` (override with `LENS_HOME`). The folder is created with
 owner-only permissions.

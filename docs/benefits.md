@@ -27,9 +27,10 @@ agents do.
 
 ## Verify (v0.4): limited so far
 
-`lens verify` compares "tests pass" style claims with the commands the session actually ran.
-It works on hand-built examples. On real sessions it mostly answers "unknown", because
-agents chain commands, so treat it as a first version. See [verify-spec.md](verify-spec.md).
+`lens verify` compares "tests pass" style claims with the commands the session actually ran,
+and with the test runner's own summary line. On the real sessions available it confirmed 7
+of 10 claims correctly and answered "unknown" for the rest. It has not yet been seen catching
+a wrong claim, because none of those sessions contained one. See [verify-spec.md](verify-spec.md).
 
 ## What it will give you later
 

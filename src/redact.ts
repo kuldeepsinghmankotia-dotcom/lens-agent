@@ -1,4 +1,6 @@
-const MAX_TEXT = 2000
+const DEFAULT_MAX = 2000
+/** Tool calls hold commands and file paths that later checks read; they are small next to outputs. */
+export const TOOL_CALL_MAX = 30000
 
 const PATTERNS: Array<[RegExp, string]> = [
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, '[REDACTED_PRIVATE_KEY]'],
@@ -24,8 +26,13 @@ export function redact(text: string): string {
   return out
 }
 
-/** Redact secrets, then cut to a fixed size so one huge tool result cannot bloat storage. */
-export function sanitize(text: string): string {
+/**
+ * Redact secrets, then cut to a fixed size so one huge tool result cannot bloat storage.
+ * Keeps the start and the end: test runners print their summary last.
+ */
+export function sanitize(text: string, max = DEFAULT_MAX): string {
   const clean = redact(text)
-  return clean.length > MAX_TEXT ? `${clean.slice(0, MAX_TEXT)}…[truncated]` : clean
+  if (clean.length <= max) return clean
+  const head = Math.floor(max * 0.4)
+  return `${clean.slice(0, head)}\n…[truncated]…\n${clean.slice(-(max - head))}`
 }

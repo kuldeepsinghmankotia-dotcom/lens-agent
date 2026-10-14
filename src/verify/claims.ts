@@ -20,7 +20,7 @@ const PATTERNS: Array<[Kind, RegExp]> = [
 
 // A sentence that negates, conditions or asks is not a claim that something passed.
 const HEDGE =
-  /\b(?:not|never|no longer|until|if|once|when|whenever|unless|should|will|would|can|could|might|whether|before|so that|make sure|to make|want|need|failed|fails|failing)\b|n't|\?/i
+  /\b(?:not|never|no longer|until|if|once|when|whenever|unless|should|will|would|can|could|might|whether|before|so that|make sure|to make|want|need|failed|fails|failing|such as|e\.g\.|i\.e\.|for example|style|report|reports|according to)\b|n't|\?/i
 
 /** Split into sentences without a regex lookbehind trick. Good enough for prose and bullets. */
 function sentences(text: string): string[] {
@@ -42,6 +42,9 @@ export function findClaims(message: string): Claim[] {
       const match = pattern.exec(sentence)
       if (!match) continue
       const before = sentence.slice(0, match.index)
+      // Inside quotes or backticks it is being discussed, not claimed.
+      const quotes = (before.match(/["`“”]/g) ?? []).length
+      if (quotes % 2 === 1) continue
       if (HEDGE.test(before) || HEDGE.test(sentence.slice(match.index + match[0].length))) continue
       const key = `${kind}:${sentence}`
       if (seen.has(key)) continue

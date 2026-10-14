@@ -1,7 +1,7 @@
 # Verify spec (v0.4)
 
 Status: implemented (audit only). Part 3 of the roadmap. See "Results on real sessions" below
-for how well it works, which is: not very well yet.
+for how well it works.
 
 ## Aim
 
@@ -106,46 +106,65 @@ a hook or CI. The dashboard gets a "claims" panel afterwards, not in v0.4.
 
 ## Changes made while building
 
-- **`call_id` on events.** Matching a command to its own result needs the tool call id, which
-  v0.2 did not keep. Events now store it. Existing databases are migrated and re-imported
-  automatically on the next `lens sync`.
-- **Result timing.** A result that arrives after a claim is not evidence for that claim.
-  Found by a mutation check that revealed the first version looked at the whole session.
-- **`npm run lint` and type-checks.** Whether `npm run lint` is eslint or `tsc --noEmit`
-  depends on the project, so a type-check claim backed only by it is UNKNOWN, not
-  UNSUPPORTED. Found when the first real run produced a false UNSUPPORTED.
+- **`call_id` on events.** Matching a command to its own result needs the tool call id.
+  Events now store it. Existing databases migrate and re-import on the next `lens sync`.
+- **Result timing.** A result that arrives after a claim is not evidence for it.
+- **`npm run lint` and type-checks.** Whether it is eslint or `tsc --noEmit` depends on the
+  project, so a type-check claim backed only by it is UNKNOWN, not UNSUPPORTED.
+- **Test summary lines (round 2).** The runner's own summary ("Tests 52 passed (52)") is read
+  from the output when the exit status cannot be attributed (pipes, `;`, heredocs). The
+  **last** line that reports a result wins, because one output often holds a deliberate
+  failure followed by a fix.
+- **Plain `&&` chains (round 2).** `a && b && c` with no pipes, quotes or heredocs: exit 0
+  means every step passed. A failure is only trusted through the output.
+- **Storage (round 2).** Long text keeps its start and its end (runners print the summary
+  last), and tool calls keep up to 30000 characters so the command that ran a test stays
+  readable. A command still cut after that counts as an unreadable run, so an older run
+  is not used as if nothing happened since.
+- **Claim finder (round 2).** Text inside quotes or backticks, "such as", "style" and
+  relayed reports ("the report shows ...") are not claims.
 
 ## Results on real sessions
 
-Run on the 11 sessions on the dev machine (Claude Code only):
+Run twice on the same 11 sessions on the dev machine (Claude Code only). Every verdict was
+reviewed by hand against the raw events.
 
-| Result | Count |
-| --- | --- |
-| Claims found | 13, in 4 sessions |
-| SUPPORTED | 0 |
-| UNSUPPORTED / CONTRADICTED | 0 (one false UNSUPPORTED, fixed, see above) |
-| UNKNOWN | 13 |
-| Real problems caught | 0 |
+| | Round 1 | Round 2 |
+| --- | --- | --- |
+| Claims found | 13 | 10 |
+| SUPPORTED | 0 | 7, all correct on review |
+| CONTRADICTED / UNSUPPORTED | 1 false UNSUPPORTED | 0 |
+| UNKNOWN | 12 | 3 |
+| Real problems caught | 0 | 0 |
 
-**Reading this honestly:** the tool did not catch anything, and it did not confirm anything
-either. Almost every claim is UNKNOWN because agents run tests inside chained or piped
-commands (`cd … && python3 - <<EOF … ; npm run check`), and the exit status of a chain
-cannot be attributed to the test. That is the main weakness of version 0.4, and it is
-where real sessions spend their time.
+Between the rounds, two further false alarms appeared while building and were fixed: two
+false CONTRADICTED (an old run whose output held deliberate failures from a mutation check,
+chosen because the real run's command had been cut in storage) and one false UNSUPPORTED (a
+sentence relaying a report). The claim count fell from 13 to 10 because quoted and relayed
+sentences stopped counting as claims.
 
-Likely next improvements (not done, not decided):
-1. Read the test runner's own summary line in the result ("Tests 52 passed (52)"). Stored
-   results are cut to the first 2000 characters, and summaries sit at the end, so storage
-   would need to keep the tail too.
-2. Treat an `&&` only chain that exits 0 as passing every part of it.
-3. Re-run the project's own scripts (the 0.4.1 idea) when the session cannot answer.
+**What this does and does not show:** on these sessions the tool now confirms what the agent
+said, and no agent said anything false. So it has never been seen **catching** a wrong claim
+on real data. The CONTRADICTED, UNSUPPORTED and STALE paths are covered only by hand-built
+sessions and mutation checks.
+
+Known limits:
+- A summary in the cut middle of a very long output is lost, so that claim is UNKNOWN
+  (one case on real data).
+- The summary reader is loose: a line like "5 passed" in unrelated output of a command that
+  also matched a runner could count. The command must still be recognised as a runner first.
+- Only tests have an output summary. Build, lint and type-check claims need a clean exit
+  status, so they are UNKNOWN whenever the command was chained in a way that hides it.
+- Only 11 sessions and 10 claims, from one person. Not statistically meaningful.
+
+Still not done: re-running the project's own scripts (idea 0.4.1).
 
 ## Success criteria
 
 | # | Criterion |
 | --- | --- |
 | 1 | Each verdict has a unit test on a hand-built session, including the edge cases | Done. Engine checked by mutation |
-| 2 | Real sessions reviewed by hand, false positives reported | Done: 1 false positive found and fixed; 0 true problems found |
+| 2 | Real sessions reviewed by hand, false positives reported | Done twice. Round 2: 7 SUPPORTED all correct, 0 false alarms left, 0 true problems found |
 | 3 | The known "claim with no run" case is flagged UNSUPPORTED | **Not met.** With the narrower claim rules that session no longer contains a claim, so there is no real example of UNSUPPORTED or CONTRADICTED to test against. Only hand-built sessions cover them |
 | 4 | Codex never gets SUPPORTED from unverified data | Done, tested |
 | 5 | `npm run check` passes, no network code | Done |

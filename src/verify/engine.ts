@@ -1,6 +1,7 @@
 import type { EventRow } from '../types.js'
 import { findClaims, type Kind } from './claims.js'
 import { classifyCommand } from './commands.js'
+import { testOutcome } from './output.js'
 
 export type Verdict = 'SUPPORTED' | 'STALE' | 'CONTRADICTED' | 'UNSUPPORTED' | 'UNKNOWN'
 
@@ -21,6 +22,7 @@ interface Run {
   kinds: Kind[]
   maybeKinds: Kind[]
   uncertain: boolean
+  chain: boolean
   /** The result row and where it sits in the timeline, if the command has one. */
   result: EventRow | undefined
   resultIndex: number
@@ -44,6 +46,30 @@ function outcome(result: EventRow | undefined): boolean | null {
 }
 
 /**
+ * Did this run pass, as far as one kind of claim is concerned?
+ * Uses the exit status when it can be attributed to the command, and the test runner's own
+ * summary line when it cannot (pipes, `;`, heredocs) or when the exit status is not enough.
+ */
+function judge(run: Run, kind: Kind, resultSeen: boolean): { passed: boolean | null; via: string } {
+  const result = resultSeen ? run.result : undefined
+  if (!result) return { passed: null, via: 'no result' }
+  const summary = kind === 'tests' ? testOutcome(result.text) : null
+  if (summary === 'fail') return { passed: false, via: 'output shows failures' }
+  const exit = outcome(result)
+  if (!run.uncertain) {
+    if (exit === true) return { passed: true, via: run.chain ? 'every step of the chain exited 0' : 'exit 0' }
+    if (exit === false) {
+      // In a chain the failure may be a different step; the output can still show the tests passed.
+      if (run.chain && summary === 'pass') return { passed: true, via: 'output shows tests passed' }
+      return run.chain ? { passed: null, via: 'chain failed at an unknown step' } : { passed: false, via: 'non-zero exit' }
+    }
+    return { passed: null, via: 'no clear result' }
+  }
+  if (summary === 'pass') return { passed: true, via: 'output shows tests passed' }
+  return { passed: null, via: 'compound or piped command, no summary in output' }
+}
+
+/**
  * Compare what the agent claimed against what the session shows.
  * Only Claude Code is judged: its tool names, error flag and edit tools are verified against
  * real transcripts. Codex logs are not verified yet, so every Codex claim is UNKNOWN.
@@ -63,17 +89,27 @@ export function verifySession(agent: string, events: EventRow[]): ClaimResult[] 
   ordered.forEach((event, index) => {
     if (event.type === 'tool_call' && agent === 'claude') {
       const input = parse(event.text)
-      if (event.tool === 'Bash' && typeof input?.command === 'string') {
-        const info = classifyCommand(input.command)
+      // A very long command is cut in storage and no longer parses as JSON. Read what is left,
+      // but never trust its exit status.
+      const truncated = event.tool === 'Bash' && input === null
+      const command = typeof input?.command === 'string' ? input.command : truncated ? event.text : null
+      if (event.tool === 'Bash' && command !== null) {
+        let info = classifyCommand(command)
+        // Cut in storage and no runner visible: it may have hidden one. Count it as an
+        // unreadable run, so older runs are not used as if nothing had happened since.
+        if (!info && truncated && command.includes('[truncated]')) {
+          info = { kinds: ['tests', 'build', 'lint', 'typecheck'], maybeKinds: [], uncertain: true, chain: false }
+        }
         if (info) {
           runs.push({
             index,
             kinds: info.kinds,
             maybeKinds: info.maybeKinds,
-            uncertain: info.uncertain,
+            uncertain: info.uncertain || truncated,
+            chain: info.chain && !truncated,
             result: event.call_id ? resultByCall.get(event.call_id)?.row : undefined,
             resultIndex: event.call_id ? (resultByCall.get(event.call_id)?.index ?? Infinity) : Infinity,
-            command: input.command.replace(/\s+/g, ' ').slice(0, 80)
+            command: command.replace(/\s+/g, ' ').slice(0, 80)
           })
         }
       } else if (event.tool && EDIT_TOOLS.has(event.tool)) {
@@ -93,21 +129,22 @@ export function verifySession(agent: string, events: EventRow[]): ClaimResult[] 
       const earlier = runs.filter((r) => r.kinds.includes(claim.kind))
       const latest = earlier[earlier.length - 1]
       // A result that arrives after the claim is not evidence the agent had when it spoke.
-      const passed = latest && latest.resultIndex < index ? outcome(latest.result) : null
+      const { passed, via } = latest
+        ? judge(latest, claim.kind, latest.resultIndex < index)
+        : { passed: null, via: '' }
       const maybe = runs.filter((r) => r.maybeKinds.includes(claim.kind)).pop()
       if (!latest && maybe) {
         results.push({ ...base, verdict: 'UNKNOWN', reason: `${maybe.command} may include a ${claim.kind} step; the project's scripts decide` })
       } else if (!latest) {
         results.push({ ...base, verdict: 'UNSUPPORTED', reason: `no ${claim.kind} command ran before this` })
       } else if (passed === false) {
-        results.push({ ...base, verdict: 'CONTRADICTED', reason: `latest run failed: ${latest.command}` })
-      } else if (passed === null || latest.uncertain) {
-        const why = latest.uncertain ? 'compound or piped command' : 'no clear result'
-        results.push({ ...base, verdict: 'UNKNOWN', reason: `${why}: ${latest.command}` })
+        results.push({ ...base, verdict: 'CONTRADICTED', reason: `${via}: ${latest.command}` })
+      } else if (passed === null) {
+        results.push({ ...base, verdict: 'UNKNOWN', reason: `${via}: ${latest.command}` })
       } else if (edits.some((i) => i > latest.index && i < index)) {
-        results.push({ ...base, verdict: 'STALE', reason: `code edited after: ${latest.command}` })
+        results.push({ ...base, verdict: 'STALE', reason: `code edited after: ${latest.command} (${via})` })
       } else {
-        results.push({ ...base, verdict: 'SUPPORTED', reason: `${latest.command} passed, no later edits` })
+        results.push({ ...base, verdict: 'SUPPORTED', reason: `${latest.command}: ${via}, no later edits` })
       }
     }
   })
