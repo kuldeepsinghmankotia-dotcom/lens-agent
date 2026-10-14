@@ -25,6 +25,7 @@ lens-agent/
 │   ├── spec.md            Scope, decisions, success criteria (v0.1)
 │   ├── memory-spec.md     Memory design (v0.2)
 │   ├── verify-spec.md     Verify design, build notes and real-data results (v0.4)
+│   ├── skills-spec.md     Skills report (v0.5)
 │   ├── architecture.md    This file
 │   ├── roadmap.md         Planned versions
 │   ├── privacy.md         What is stored and how it is protected
@@ -40,6 +41,7 @@ lens-agent/
 │   ├── ingest.ts          Sync agent files into the store
 │   ├── memory/            Curated project memory (text, store, suggest, apply)
 │   ├── verify/            Claim finder, command classifier, verdict engine, report
+│   ├── skills/            Installed-skill discovery, usage counts, report
 │   ├── server.ts          Read-only dashboard API (loopback, token)
 │   ├── adapters/          One file per agent
 │   │   ├── claude.ts

@@ -16,6 +16,10 @@ import {
   type MemoryRow
 } from './memory/store.js'
 import { suggestMemories } from './memory/suggest.js'
+import { claudeHome } from './paths.js'
+import { discoverSkills } from './skills/discover.js'
+import { renderSkillsReport } from './skills/report.js'
+import { buildReport } from './skills/usage.js'
 import { hasProblems, verifySession } from './verify/engine.js'
 import { renderReport } from './verify/report.js'
 
@@ -29,6 +33,9 @@ Usage:
   lens show <session-id>        Show one session (an id prefix is enough)
   lens dashboard [--port N]     Open the local dashboard (127.0.0.1 only)
   lens purge --yes [--memories] Delete captured sessions (memories too with --memories)
+
+Skills (read only):
+  lens skills [--unused] [--project [path]]   Installed Claude Code skills and how often each ran
 
 Verify (checks "tests pass" style claims against what the session shows; read only):
   lens verify <session-id>      Audit one session
@@ -217,6 +224,14 @@ function main(): void {
           console.log('Local only. Press Ctrl+C to stop.')
         })
         return // keep the process and database open while serving
+      }
+      case 'skills': {
+        const at = args.indexOf('--project')
+        const next = args[at + 1]
+        const project = at >= 0 ? projectKey(next && !next.startsWith('--') ? next : process.cwd()) : undefined
+        const report = buildReport(store, discoverSkills(claudeHome(), project))
+        console.log(renderSkillsReport(report, { showUnused: args.includes('--unused') }).join('\n'))
+        break
       }
       case 'verify': {
         let sessions: SessionRow[]

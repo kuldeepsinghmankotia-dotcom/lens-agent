@@ -41,7 +41,7 @@ More: [docs/usage.md](docs/usage.md).
 | Dashboard | Working; page behaviour covered by automated tests. Layout and dark mode not yet checked in a real browser |
 | Memory (`lens remember`, `lens memory ...`) | Working. Suggestions are rule based and can be noisy; see [docs/memory-spec.md](docs/memory-spec.md) |
 | Verify (`lens verify`) | Working: confirmed 7 of 10 real claims correctly, 3 unknown, and flagged no false alarms. It has never been seen catching a wrong claim on real data. See [docs/verify-spec.md](docs/verify-spec.md) |
-| Registry | Planned: see [docs/roadmap.md](docs/roadmap.md) |
+| Skills report (`lens skills`) | Working: lists installed skills and how often each ran. A shared registry was set aside, see [docs/skills-spec.md](docs/skills-spec.md) |
 
 ## Privacy
 
@@ -50,7 +50,7 @@ Local only, no network calls, secrets redacted before storage, dashboard bound t
 
 ## Documentation
 
-[Aim](docs/aim.md) · [Benefits](docs/benefits.md) · [Spec](docs/spec.md) · [Memory](docs/memory-spec.md) · [Verify](docs/verify-spec.md) ·
+[Aim](docs/aim.md) · [Benefits](docs/benefits.md) · [Spec](docs/spec.md) · [Memory](docs/memory-spec.md) · [Verify](docs/verify-spec.md) · [Skills](docs/skills-spec.md) ·
 [Architecture](docs/architecture.md) · [Roadmap](docs/roadmap.md) ·
 [Privacy](docs/privacy.md) · [Usage](docs/usage.md) · [Plans](docs/plans/)
 

@@ -33,6 +33,11 @@ Redaction is pattern based. It cannot catch every secret. Treat the database as 
 - Read-only, GET only, no CORS headers, strict content security policy.
 - Event text is inserted with `textContent`, never as HTML.
 
+## Skills report
+
+`lens skills` reads the `name` and `description` lines of each installed SKILL.md and nothing
+else. Skill bodies are never read, stored or shown. Nothing is stored for the report.
+
 ## Deleting your data
 
 `lens purge --yes` deletes captured sessions. Curated memories are kept, because you wrote

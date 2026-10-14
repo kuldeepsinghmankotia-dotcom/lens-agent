@@ -32,9 +32,15 @@ and with the test runner's own summary line. On the real sessions available it c
 of 10 claims correctly and answered "unknown" for the rest. It has not yet been seen catching
 a wrong claim, because none of those sessions contained one. See [verify-spec.md](verify-spec.md).
 
-## What it will give you later
+## Skills report (v0.5)
 
-- **Registry:** reuse skills other people have tested.
+`lens skills` shows which Claude Code skills you have installed and which ones you actually
+use. On the dev machine: 52 installed, 1 of them used in 11 sessions. It is an inventory and
+a usage count, not a quality score; the history is too short for more.
+
+## What it might give you later
+
+- **Skill sharing:** export a skill from one machine and import it on another from a folder.
 
 ## Honest limits
 

@@ -10,6 +10,11 @@ export function dbPath(): string {
   return join(lensHome(), 'lens.db')
 }
 
+/** Claude Code's config folder. Override with LENS_CLAUDE_HOME. */
+export function claudeHome(): string {
+  return process.env.LENS_CLAUDE_HOME ?? join(homedir(), '.claude')
+}
+
 /** Where Claude Code writes session transcripts. Override with LENS_CLAUDE_DIR. */
 export function claudeDir(): string {
   return process.env.LENS_CLAUDE_DIR ?? join(homedir(), '.claude', 'projects')

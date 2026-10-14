@@ -230,6 +230,24 @@ export class Store {
     return { ...totals, byAgent }
   }
 
+  /** Every Skill tool call in captured sessions, with its session and working folder. */
+  skillInvocations(): Array<{ session_id: string; ts: number; cwd: string | null; text: string }> {
+    return this.db
+      .prepare(
+        `SELECT e.session_id, e.ts, s.cwd, e.text FROM events e
+         JOIN sessions s ON s.id = e.session_id
+         WHERE e.type = 'tool_call' AND e.tool = 'Skill' ORDER BY e.ts`
+      )
+      .all() as unknown as Array<{ session_id: string; ts: number; cwd: string | null; text: string }>
+  }
+
+  /** Earliest and latest session start, for saying how much history a report covers. */
+  historySpan(): { sessions: number; first: number | null; last: number | null } {
+    return this.db
+      .prepare('SELECT COUNT(*) AS sessions, MIN(started_at) AS first, MAX(started_at) AS last FROM sessions')
+      .get() as unknown as { sessions: number; first: number | null; last: number | null }
+  }
+
   /** Sessions whose working folder is `project` or inside it. */
   sessionsForProject(project: string): SessionRow[] {
     const escaped = project.replace(/[\\%_]/g, '\\$&')
