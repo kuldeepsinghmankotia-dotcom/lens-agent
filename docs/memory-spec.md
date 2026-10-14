@@ -38,11 +38,16 @@ Only `accepted` memories are ever written to project files.
 
 ## Suggestion rules (deterministic, no AI)
 
-1. **Instructions you gave:** a prompt of 200 characters or less that starts with
-   "don't", "do not", "never", "always", "stop", "make sure" or "remember".
-2. **Commands you keep running:** a shell command (80 characters or less) used in 3 or
-   more sessions of the project.
-3. **Files that keep changing:** a file edited in 3 or more sessions.
+1. **Instructions you gave** (prompts of 200 characters or less, not questions):
+   - *Strong wording* ("always", "never", "from now on", "going forward", "in this
+     project", "by default", "we use/prefer") is suggested from a single session.
+   - *Weak wording* (starts with "don't", "do not", "stop", "make sure", "remember") is
+     suggested only if the same prompt appears in 2 or more sessions.
+   - Prompts that mark a one-off moment ("this time", "for now", "right now", "today",
+     "let's") are skipped.
+2. **Commands you keep running:** a shell command (80 characters or less) used in
+   `--min-sessions` or more sessions (default 3).
+3. **Files that keep changing:** a file edited in that many sessions.
 
 At most 10 new suggestions per run. A rejected suggestion is never proposed again.
 
@@ -66,11 +71,15 @@ Instruction files steer agents, so a memory is a prompt-injection target.
 
 ## Known limitations
 
-- Suggestions are candidates, not conclusions. On a real project the "instructions you
-  gave" rule proposed a one-off remark. Expect to reject some. Rejected ones never return.
-- Commands and files need 3+ sessions of captured history in that project before they
-  appear. Short histories give no suggestions.
-- Suggestion quality has only been checked on a few real projects so far.
+- Suggestions are candidates, not conclusions. Expect to reject some. Rejected ones never
+  return.
+- The first version of the instruction rule matched 1 of 114 real prompts, and that match
+  was a one-off remark. The weak-wording and one-off filters were added because of it.
+- Most real preferences are not worded as rules ("keep it minimal for learning"), so this
+  rule finds few of them. Use `lens remember` for those.
+- The commands and files rules could not be tuned on real data: the dev machine had 11
+  sessions, at most 6 per project, and nothing repeated even twice. The default of 3 is a
+  guess. Try `--min-sessions 2` on your own history.
 
 ## Out of scope
 

@@ -31,7 +31,7 @@ Usage:
 Memory (per project folder; --project <path> picks another folder):
   lens remember "text"          Save a memory for this project
   lens memory list [--all]      Show memories (--all includes suggested and rejected)
-  lens memory suggest           Propose memories from this project's sessions
+  lens memory suggest [--min-sessions N]  Propose memories from this project's sessions
   lens memory accept <id>       Keep a suggestion
   lens memory reject <id>       Dismiss a suggestion for good
   lens memory edit <id> "text"  Change the wording
@@ -92,7 +92,8 @@ function runMemory(store: Store, args: string[]): void {
       break
     }
     case 'suggest': {
-      const created = suggestMemories(store, project)
+      const min = flag(rest, '--min-sessions')
+      const created = suggestMemories(store, project, min === undefined ? {} : { minSessions: Number(min) })
       console.log(created.length ? `${created.length} new suggestion(s):` : 'No new suggestions.')
       for (const text of created) console.log(`  ${text}`)
       if (created.length) console.log('Review with "lens memory list", then accept or reject by id.')

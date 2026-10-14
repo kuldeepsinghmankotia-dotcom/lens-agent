@@ -11,7 +11,7 @@ import {
   listMemories,
   setStatus
 } from '../src/memory/store.js'
-import { suggestMemories } from '../src/memory/suggest.js'
+import { instructionStrength, suggestMemories } from '../src/memory/suggest.js'
 import { normalizeMemoryText } from '../src/memory/text.js'
 import type { LensEvent } from '../src/types.js'
 
@@ -94,13 +94,27 @@ describe('suggestMemories', () => {
     store = new Store(':memory:')
   })
 
-  it('suggests explicit instructions from your prompts', () => {
+  it('suggests a strongly worded rule from a single session', () => {
     session(store, 's1', '/proj', [
-      ev('1', 1, 'prompt', null, "don't use semicolons"),
+      ev('1', 1, 'prompt', null, 'Always use single quotes in this project'),
       ev('2', 2, 'prompt', null, 'please fix the bug')
     ])
-    const out = suggestMemories(store, '/proj')
-    expect(out).toEqual(["You asked: don't use semicolons"])
+    expect(suggestMemories(store, '/proj')).toEqual(['You asked: Always use single quotes in this project'])
+  })
+
+  it('only trusts a weakly worded remark when it repeats across sessions', () => {
+    session(store, 's1', '/proj', [ev('1', 1, 'prompt', null, "don't use semicolons")])
+    expect(suggestMemories(store, '/proj')).toEqual([])
+    session(store, 's2', '/proj', [ev('1', 1, 'prompt', null, "Don't use semicolons")])
+    expect(suggestMemories(store, '/proj')).toEqual(["You asked: don't use semicolons"])
+  })
+
+  it('--min-sessions lowers the bar for commands', () => {
+    for (const n of [1, 2]) {
+      session(store, `s${n}`, '/proj', [ev('a', 1, 'tool_call', 'Bash', JSON.stringify({ command: 'npm run lint' }))])
+    }
+    expect(suggestMemories(store, '/proj')).toEqual([])
+    expect(suggestMemories(store, '/proj', { minSessions: 2 })).toEqual(['Command used often: npm run lint'])
   })
 
   it('suggests commands and files only when seen in 3+ sessions', () => {
@@ -141,6 +155,25 @@ describe('suggestMemories', () => {
     session(store, 's1', '/proj', [ev('1', 1, 'prompt', null, 'always use key sk-ant-abcdef1234567890abcdef')])
     const [text] = suggestMemories(store, '/proj')
     expect(text).not.toContain('sk-ant-abcdef')
+  })
+})
+
+describe('instructionStrength', () => {
+  it.each([
+    ['Always run the tests before committing', 'strong'],
+    ['never commit .env files', 'strong'],
+    ['from now on use pnpm', 'strong'],
+    ["don't touch the migrations folder", 'weak'],
+    ['Make sure to run lint', 'weak'],
+    ['dont show jesse\'s license only show my copyright and step 3 too we will do', 'weak'],
+    ['always do it this time', null],
+    ['Should we never use Redux?', null],
+    ["let's always try it", null],
+    ['please fix the login bug', null],
+    ['x'.repeat(201), null],
+    ['', null]
+  ] as const)('%s -> %s', (text, expected) => {
+    expect(instructionStrength(text)).toBe(expected)
   })
 })
 
