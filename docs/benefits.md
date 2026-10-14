@@ -33,7 +33,6 @@ agents chain commands, so treat it as a first version. See [verify-spec.md](veri
 
 ## What it will give you later
 
-- **Verify:** catch "done" claims that are not true before you merge.
 - **Registry:** reuse skills other people have tested.
 
 ## Honest limits
